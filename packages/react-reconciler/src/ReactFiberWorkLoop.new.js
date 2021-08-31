@@ -1544,6 +1544,7 @@ function renderRootConcurrent(root: FiberRoot, lanes: Lanes) {
 /** @noinline */
 function workLoopConcurrent() {
   // Perform work until Scheduler asks us to yield
+  // 可中断的循环，shouldYield判断当前是否有剩余时间
   while (workInProgress !== null && !shouldYield()) {
     performUnitOfWork(workInProgress);
   }

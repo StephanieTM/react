@@ -207,6 +207,11 @@ const ReactElement = function(type, key, ref, self, source, owner, props) {
  * @param {string} key
  */
 export function jsx(type, config, maybeKey) {
+  // jsx()和createElement()都返回ReactElement
+  // isValidElement()可以判断对象是否是ReactElement
+  // 在组件mount时，Reconciler根据JSX描述的组件内容生成组件对应的Fiber节点
+  // 在update时，Reconciler将JSX与Fiber节点保存的数据对比，生成组件对应的Fiber节点，并根据对比结果在Fiber节点上做标记
+
   let propName;
 
   // Reserved names are extracted
@@ -357,6 +362,8 @@ export function createElement(type, config, children) {
   let self = null;
   let source = null;
 
+
+  // 处理config，赋值给props
   if (config != null) {
     if (hasValidRef(config)) {
       ref = config.ref;
@@ -382,6 +389,8 @@ export function createElement(type, config, children) {
     }
   }
 
+
+  // 处理children，赋值给props.children
   // Children can be more than one argument, and those are transferred onto
   // the newly allocated props object.
   const childrenLength = arguments.length - 2;
@@ -400,6 +409,8 @@ export function createElement(type, config, children) {
     props.children = childArray;
   }
 
+
+  // 处理defaultProps
   // Resolve default props
   if (type && type.defaultProps) {
     const defaultProps = type.defaultProps;
@@ -546,6 +557,9 @@ export function cloneElement(element, config, children) {
  * @final
  */
 export function isValidElement(object) {
+  // 判断对象是否是ReactElement
+  // 只要是对象，且非null，且$$typeof是react.element的symbol，就视为ReactElement
+
   return (
     typeof object === 'object' &&
     object !== null &&
