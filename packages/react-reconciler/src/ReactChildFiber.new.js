@@ -1340,6 +1340,8 @@ function ChildReconciler(shouldTrackSideEffects) {
   return reconcileChildFibers;
 }
 
+// reconcileChildFibers 和 mountChildFibers 逻辑基本一致，
+// 区别：前者会为生成的Fiber节点带上effectTag属性（比如 Placement, Update, PlacementAndUpdate, Deletion ），后者不会
 export const reconcileChildFibers = ChildReconciler(true);
 export const mountChildFibers = ChildReconciler(false);
 

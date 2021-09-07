@@ -1453,11 +1453,16 @@ function renderRootSync(root: FiberRoot, lanes: Lanes) {
   return workInProgressRootExitStatus;
 }
 
+// 同步更新
+// workLoopSync与workLoopConcurrent的区别：
+// 后者的循环判断中会调用shouldYield，如果当前帧没有剩余时间则会停止中断，知道浏览器有空闲时间后再继续遍历
 // The work loop is an extremely hot path. Tell Closure not to inline it.
 /** @noinline */
 function workLoopSync() {
   // Already timed out, so perform work without checking if we need to yield.
+  // workInProgress代表当前已创建的 workInProgress Fiber
   while (workInProgress !== null) {
+    // performUnitOfWork方法创建下一个Fiber节点并赋值给workInProgress，将workInProgress与已创建的Fiber节点连接起来构成Fiber树
     performUnitOfWork(workInProgress);
   }
 }
@@ -1541,6 +1546,7 @@ function renderRootConcurrent(root: FiberRoot, lanes: Lanes) {
   }
 }
 
+// 异步更新
 /** @noinline */
 function workLoopConcurrent() {
   // Perform work until Scheduler asks us to yield
@@ -1550,6 +1556,7 @@ function workLoopConcurrent() {
   }
 }
 
+// 创建下一个Fiber节点赋值给workInProgress，并将workInProgress与已创建的Fiber节点连接起来构成Fiber树
 function performUnitOfWork(unitOfWork: Fiber): void {
   // The current, flushed, state of this fiber is the alternate. Ideally
   // nothing should rely on this, but relying on it here means that we don't

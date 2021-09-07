@@ -249,13 +249,20 @@ if (__DEV__) {
   didWarnAboutDefaultPropsOnFunctionComponent = {};
 }
 
+// 对于mount的组件，创建新的子Fiber节点
+// 对于update的组件，将当前组件与该组件上次更新时对应的Fiber节点进行比较，将比较结果生成新的Fiber节点
 export function reconcileChildren(
-  current: Fiber | null,
-  workInProgress: Fiber,
+  current: Fiber | null, // 当前组件对应的Fiber节点在上一次更新时的Fiber节点，即workInProgress.alternate
+  workInProgress: Fiber, // 当前组件对应的Fiber节点
   nextChildren: any,
   renderLanes: Lanes,
 ) {
+  // reconcileChildFibers 和 mountChildFibers 逻辑基本一致，
+  // 区别：前者会为生成的Fiber节点带上effectTag属性（比如 Placement, Update, PlacementAndUpdate, Deletion ），后者不会
+
   if (current === null) {
+    // mount组件
+
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
     // we will add them all to the child before it gets rendered. That means
@@ -267,6 +274,8 @@ export function reconcileChildren(
       renderLanes,
     );
   } else {
+    // update组件
+
     // If the current child is the same as the work in progress, it means that
     // we haven't yet started any work on these children. Therefore, we use
     // the clone algorithm to create a copy of all the current children.
@@ -3185,9 +3194,11 @@ function remountFiber(
   }
 }
 
+
+// 传入当前Fiber节点，创建子Fiber节点
 function beginWork(
-  current: Fiber | null,
-  workInProgress: Fiber,
+  current: Fiber | null, // 当前组件对应的Fiber节点在上一次更新时的Fiber节点，即workInProgress.alternate
+  workInProgress: Fiber, // 当前组件对应的Fiber节点
   renderLanes: Lanes,
 ): Fiber | null {
   let updateLanes = workInProgress.lanes;
@@ -3210,7 +3221,10 @@ function beginWork(
     }
   }
 
+  // 通过current是否等于null来判断是mount还是update
   if (current !== null) {
+    // 组件update，可能存在优化路径，可以复用current
+
     // TODO: The factoring of this block is weird.
     if (
       enableLazyContextPropagation &&
@@ -3224,6 +3238,8 @@ function beginWork(
 
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
+
+    // didReceiveUpdate === false : 没有更新，可以直接复用前一次更新的Fiber，不需要新建Fiber
 
     if (
       oldProps !== newProps ||
@@ -3447,6 +3463,8 @@ function beginWork(
           break;
         }
       }
+
+      // 复用current
       return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes);
     } else {
       if ((current.flags & ForceUpdateForLegacySuspense) !== NoFlags) {
@@ -3472,6 +3490,7 @@ function beginWork(
   // move this assignment out of the common path and into each branch.
   workInProgress.lanes = NoLanes;
 
+  // mount时，或update不满足优化路径时，根据tag不同创建不同的子Fiber节点
   switch (workInProgress.tag) {
     case IndeterminateComponent: {
       return mountIndeterminateComponent(
