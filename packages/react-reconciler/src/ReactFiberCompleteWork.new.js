@@ -232,6 +232,8 @@ if (supportsMutation) {
   updateHostContainer = function(current: null | Fiber, workInProgress: Fiber) {
     // Noop
   };
+
+  // 更新DOM节点对应的Fiber
   updateHostComponent = function(
     current: Fiber,
     workInProgress: Fiber,
@@ -257,6 +259,7 @@ if (supportsMutation) {
     // TODO: Experiencing an error where oldProps is null. Suggests a host
     // component is hitting the resume path. Figure out why. Possibly
     // related to `hidden`.
+    // 计算需要更新的props，结果形如['key1', 'value1', 'key2', 'value2', ...]
     const updatePayload = prepareUpdate(
       instance,
       type,
@@ -270,6 +273,7 @@ if (supportsMutation) {
     // If the update payload indicates that there is a change or if there
     // is a new ref we mark this as an update. All the work is done in commitWork.
     if (updatePayload) {
+      // 如果存在需要更新的props，则标记update
       markUpdate(workInProgress);
     }
   };
@@ -783,8 +787,8 @@ function bubbleProperties(completedWork: Fiber) {
 }
 
 function completeWork(
-  current: Fiber | null,
-  workInProgress: Fiber,
+  current: Fiber | null, // 当前组件对应的Fiber节点在上一次更新时的Fiber节点，即workInProgress.alternate
+  workInProgress: Fiber, // 当前组件对应的Fiber节点
   renderLanes: Lanes,
 ): Fiber | null {
   const newProps = workInProgress.pendingProps;
@@ -845,11 +849,14 @@ function completeWork(
       bubbleProperties(workInProgress);
       return null;
     }
+    // 原生DOM组件对应的Fiber节点
     case HostComponent: {
       popHostContext(workInProgress);
       const rootContainerInstance = getRootHostContainer();
       const type = workInProgress.type;
       if (current !== null && workInProgress.stateNode != null) {
+        // update：上一次更新时的Fiber节点不为空，且当前Fiber节点有对应的DOM节点
+        // 因为已经有DOM节点，所以无需生成DOM节点，主要是处理props
         updateHostComponent(
           current,
           workInProgress,
@@ -862,6 +869,7 @@ function completeWork(
           markRef(workInProgress);
         }
       } else {
+        // mount时
         if (!newProps) {
           invariant(
             workInProgress.stateNode !== null,
@@ -894,6 +902,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
+          // 为Fiber创建对应的DOM节点
           const instance = createInstance(
             type,
             newProps,
@@ -902,13 +911,18 @@ function completeWork(
             workInProgress,
           );
 
+          // 将子孙DOM节点插入到刚生成的DOM节点中
+          // 为了提高效率，mount时只会在rootFiber有Placement EffectTag，即在commit阶段只对应一次DOM插入操作
+          // 由于completeWork属于“归”阶段，每次调用appendAllChildren都会将已经生成的子孙DOM节点插入到当前生成的DOM节点下，当“归”到rootFiber时，就会拥有一棵已经构建好的DOM tree
           appendAllChildren(instance, workInProgress, false, false);
 
+          // 将DOM节点赋值给fiber.stateNode
           workInProgress.stateNode = instance;
 
           // Certain renderers require commit-time effects for initial mount.
           // (eg DOM renderer supports auto-focus for certain elements).
           // Make sure such renderers get scheduled for later work.
+          // 处理和标记有变更的props
           if (
             finalizeInitialChildren(
               instance,

@@ -1008,6 +1008,7 @@ function performSyncWorkOnRoot(root) {
   const finishedWork: Fiber = (root.current.alternate: any);
   root.finishedWork = finishedWork;
   root.finishedLanes = lanes;
+  // 开始commit阶段
   commitRoot(root);
 
   // Before exiting, make sure there's a callback scheduled for the next
