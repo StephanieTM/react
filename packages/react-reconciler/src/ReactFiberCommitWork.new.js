@@ -348,6 +348,7 @@ export function commitBeforeMutationEffects(
   root: FiberRoot,
   firstChild: Fiber,
 ) {
+  // 处理focus状态
   focusedInstanceHandle = prepareForCommit(root.containerInfo);
 
   nextEffect = firstChild;
@@ -405,6 +406,7 @@ function commitBeforeMutationEffects_complete() {
       resetCurrentDebugFiberInDEV();
     } else {
       try {
+        // 调用 getSnapshotBeforeUpdate
         commitBeforeMutationEffectsOnFiber(fiber);
       } catch (error) {
         captureCommitPhaseError(fiber, fiber.return, error);
@@ -1541,6 +1543,7 @@ function commitPlacement(finishedWork: Fiber): void {
   }
 
   // Recursively insert all host nodes into the parent.
+  // 获取父级 DOM 节点， finishedWork 为传入的 Fiber 节点
   const parentFiber = getHostParentFiber(finishedWork);
 
   // Note: these two variables *must* always be updated together.
@@ -1575,9 +1578,11 @@ function commitPlacement(finishedWork: Fiber): void {
     parentFiber.flags &= ~ContentReset;
   }
 
+  // 获取 Fiber 节点的 DOM 兄弟节点，这个方法比较耗时
   const before = getHostSibling(finishedWork);
   // We only have the top Fiber that was inserted but we need to recurse down its
   // children to find all the terminal nodes.
+  // isContainer: parentStateNode 是否是 rootFiber
   if (isContainer) {
     insertOrAppendPlacementNodeIntoContainer(finishedWork, before, parent);
   } else {
@@ -1593,6 +1598,7 @@ function insertOrAppendPlacementNodeIntoContainer(
   const {tag} = node;
   const isHost = tag === HostComponent || tag === HostText;
   if (isHost) {
+    // 根据 DOM 兄弟节点是否存在决定调用 insertBefore 还是 appendChild
     const stateNode = node.stateNode;
     if (before) {
       insertInContainerBefore(parent, stateNode, before);
@@ -1624,6 +1630,7 @@ function insertOrAppendPlacementNode(
   const {tag} = node;
   const isHost = tag === HostComponent || tag === HostText;
   if (isHost) {
+    // 根据 DOM 兄弟节点是否存在决定调用 insertBefore 还是 appendChild
     const stateNode = node.stateNode;
     if (before) {
       insertBefore(parent, stateNode, before);
@@ -2154,6 +2161,7 @@ function commitMutationEffects_begin(root: FiberRoot) {
           }
         } else {
           try {
+            // 对需要删除的节点执行删除DOM操作
             commitDeletion(root, childToDelete, fiber);
           } catch (error) {
             captureCommitPhaseError(childToDelete, fiber, error);
@@ -2212,9 +2220,11 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
   const flags = finishedWork.flags;
 
   if (flags & ContentReset) {
+    // 根据 ContentReset effectTag 重置文字节点
     commitResetTextContent(finishedWork);
   }
 
+  // 更新 ref
   if (flags & Ref) {
     const current = finishedWork.alternate;
     if (current !== null) {
@@ -2233,8 +2243,10 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
   // updates, and deletions. To avoid needing to add a case for every possible
   // bitmap value, we remove the secondary effects from the effect tag and
   // switch on that value.
+  // 根据 effectTag 分别处理
   const primaryFlags = flags & (Placement | Update | Hydrating);
   outer: switch (primaryFlags) {
+    // 插入 DOM
     case Placement: {
       commitPlacement(finishedWork);
       // Clear the "placement" from effect tag so that we know that this is
@@ -2244,6 +2256,7 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
       finishedWork.flags &= ~Placement;
       break;
     }
+    // 插入DOM 并 更新DOM
     case PlacementAndUpdate: {
       // Placement
       commitPlacement(finishedWork);
@@ -2256,10 +2269,12 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
       commitWork(current, finishedWork);
       break;
     }
+    // SSR
     case Hydrating: {
       finishedWork.flags &= ~Hydrating;
       break;
     }
+    // SSR
     case HydratingAndUpdate: {
       finishedWork.flags &= ~Hydrating;
 
@@ -2268,6 +2283,7 @@ function commitMutationEffectsOnFiber(finishedWork: Fiber, root: FiberRoot) {
       commitWork(current, finishedWork);
       break;
     }
+    // 更新ODM
     case Update: {
       const current = finishedWork.alternate;
       commitWork(current, finishedWork);
